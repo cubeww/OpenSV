@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/JUCE/CMakeLists.txt")
-    message(FATAL_ERROR "JUCE is missing. Run tools/build.ps1 to fetch the pinned dependency and build.")
+    message(FATAL_ERROR "JUCE submodule is missing. Run git submodule update --init --recursive. See BUILD_AND_USAGE.md.")
 endif()
 
 add_subdirectory(third_party/JUCE EXCLUDE_FROM_ALL)
@@ -56,12 +56,6 @@ if(MSVC)
     target_compile_options(OpenSV PRIVATE /utf-8 /permissive- /EHsc)
 endif()
 
-juce_add_console_app(OpenSVVoice
-    PRODUCT_NAME "opensv-voice"
-    COMPANY_NAME "OpenSV"
-    BUNDLE_ID "org.opensv.voice"
-)
-set_target_properties(OpenSVVoice PROPERTIES OUTPUT_NAME "opensv-voice")
 add_library(OpenSVEngine STATIC
     src/core/Project.cpp
     src/core/ProjectFile.cpp
@@ -102,16 +96,28 @@ target_link_libraries(OpenSVEngine PRIVATE
     juce::juce_recommended_config_flags
     juce::juce_recommended_warning_flags
 )
-target_sources(OpenSVVoice PRIVATE tools/voice/Main.cpp)
-target_link_libraries(OpenSVVoice PRIVATE
-    OpenSVEngine
-    juce::juce_core
-    juce::juce_audio_formats
-    juce::juce_dsp
-    juce::juce_recommended_config_flags
-    juce::juce_recommended_warning_flags
-)
 if(MSVC)
     target_compile_options(OpenSVEngine PRIVATE /utf-8 /permissive- /EHsc)
-    target_compile_options(OpenSVVoice PRIVATE /utf-8 /permissive- /EHsc)
+endif()
+
+option(OPENSV_BUILD_INTERNAL_TOOLS "Build internal voice diagnostics" OFF)
+if(OPENSV_BUILD_INTERNAL_TOOLS)
+    juce_add_console_app(OpenSVVoice
+        PRODUCT_NAME "opensv-voice"
+        COMPANY_NAME "OpenSV"
+        BUNDLE_ID "org.opensv.voice"
+    )
+    set_target_properties(OpenSVVoice PROPERTIES OUTPUT_NAME "opensv-voice")
+    target_sources(OpenSVVoice PRIVATE tools/voice/Main.cpp)
+    target_link_libraries(OpenSVVoice PRIVATE
+        OpenSVEngine
+        juce::juce_core
+        juce::juce_audio_formats
+        juce::juce_dsp
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+    )
+    if(MSVC)
+        target_compile_options(OpenSVVoice PRIVATE /utf-8 /permissive- /EHsc)
+    endif()
 endif()

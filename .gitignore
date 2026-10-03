@@ -1,10 +1,8 @@
 /build/
 /out/
-/third_party/
 /analysis/
 /references/
-/tools/analysis/
-/tools/voice/
+/tools/
 /docs/
 /.vs/
 *.user

@@ -72,7 +72,7 @@ juce::String textOf(const juce::MemoryBlock& block)
 
 juce::Result VoiceDatabase::open(const juce::File& newFile)
 {
-    file = {};
+    file = juce::File{};
     stream.reset();
     entries.clear();
     metadata = {};
@@ -194,7 +194,7 @@ juce::Result VoiceDatabase::open(const juce::File& newFile)
     auto result = readMetadata();
     if (result.failed())
     {
-        file = {};
+        file = juce::File{};
         stream.reset();
         entries.clear();
         metadata = {};
