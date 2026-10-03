@@ -14,8 +14,10 @@ namespace
 {
 constexpr std::size_t featureChannels = 10;
 constexpr std::size_t maximumFrames = 4 * 1024 * 1024;
-constexpr std::array<std::uint64_t, 12> frontendTypes{
-    0x326912e58397973c, 0x41cc3ee418da5076, 0xeb267c0afe5fcfad, 0x42950c54a390f95a, 0x9d63b0bd15221986, 0x13129a19647e31bd, 0x86149a203f186a10, 0x1051cbcb9d995bb8, 0x5dc552ef55f9da66, 0x7430ff6f1646a6f5, 0xf35e005c07d8d7e3, 0xc6df464d8865892f};
+// Both alias groups registered at 0x1000bc6a0 construct the same ten-channel
+// frontend; Hibiki Koto uses the first group, while Teto uses the second.
+constexpr std::array<std::uint64_t, 24> frontendTypes{
+    0x326915e583979c55, 0x41cc3de418da4ec3, 0xeb26790afe5fca94, 0x42950b54a390f7a7, 0x9d63afbd152217d3, 0x13129719647e2ca4, 0x86149d203f186f29, 0x1051cecb9d9960d1, 0x5dc551ef55f9d8b3, 0x7430fc6f1646a1dc, 0xf35e015c07d8d996, 0xc6df474d88658ae2, 0x326912e58397973c, 0x41cc3ee418da5076, 0xeb267c0afe5fcfad, 0x42950c54a390f95a, 0x9d63b0bd15221986, 0x13129a19647e31bd, 0x86149a203f186a10, 0x1051cbcb9d995bb8, 0x5dc552ef55f9da66, 0x7430ff6f1646a6f5, 0xf35e005c07d8d7e3, 0xc6df464d8865892f};
 
 juce::Result failure(const juce::String& reason)
 {
@@ -143,9 +145,9 @@ juce::Result PitchFeatures::load(const DnniReader& reader, std::size_t nodeIndex
     {
         return result;
     }
-    if (candidate.means.size() != featureChannels || candidate.scales.size() != featureChannels || candidate.unifiedPhoneSet.classes.size() != 13 || candidate.phoneSets.size() != 5)
+    if (candidate.means.size() != featureChannels || candidate.scales.size() != featureChannels)
     {
-        return failure("unsupported score, phoneme category, or language dimensions.");
+        return failure("score normalization must contain ten channels.");
     }
     *this = std::move(candidate);
     return juce::Result::ok();
@@ -154,6 +156,16 @@ juce::Result PitchFeatures::load(const DnniReader& reader, std::size_t nodeIndex
 float PitchFeatures::getFrameIntervalSeconds() const noexcept
 {
     return frameIntervalSeconds;
+}
+
+std::size_t PitchFeatures::getPhonemeCategoryCount() const noexcept
+{
+    return unifiedPhoneSet.classes.size();
+}
+
+std::size_t PitchFeatures::getLanguageCount() const noexcept
+{
+    return phoneSets.size();
 }
 
 juce::Result PitchFeatures::encode(std::span<const PitchNote> notes, std::span<const PhonemeDuration> phonemes, PitchFeatureOutput& output) const

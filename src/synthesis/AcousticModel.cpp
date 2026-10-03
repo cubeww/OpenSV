@@ -128,7 +128,7 @@ try
     {
         return result;
     }
-    if (candidate.features.getConfig().phonemeChannels != 108 || candidate.features.getConfig().pitchChannels != 1 || candidate.features.getConfig().acousticChannels != 71 || candidate.features.getConfig().frameIntervalSeconds != 0.005f)
+    if (candidate.features.getConfig().pitchChannels != 1 || candidate.features.getConfig().acousticChannels != 71 || candidate.features.getConfig().frameIntervalSeconds != 0.005f)
     {
         return fail("unsupported acoustic feature dimensions or frame interval");
     }
@@ -246,14 +246,22 @@ juce::Result AcousticModel::sampleLatent(const DnniTensor& context, const DnniTe
     }
     DnniTensor condition{context.frames, 388, std::vector<float>(context.frames * 388)};
     std::array<float, 128> controls{};
-    // The two default controls are 1 and 0; each uses 32 sine and 32 cosine features.
+    // The editor supplies these normal-take controls at 0x100090040 before DIDS;
+    // the low-level empty-queue defaults (1, 1, 0) are not the editor defaults.
+    constexpr float diffusionTemperature = 0.995f;
+    constexpr float sourceTemperature = 0.5f;
+    constexpr float guidance = 1.0f;
     for (std::size_t index = 0; index < 32; ++index)
     {
-        const float angle = 64.0f * std::exp2(static_cast<float>(index) * (-26.575424194335938f / 64.0f));
-        controls[index] = std::sin(angle);
-        controls[index + 32] = std::cos(angle);
-        controls[index + 96] = 1.0f;
+        const float frequency = std::exp2(static_cast<float>(index) * (-26.575424194335938f / 64.0f));
+        const float diffusionAngle = 64.0f * diffusionTemperature * frequency;
+        const float guidanceAngle = 64.0f * guidance * frequency;
+        controls[index] = std::sin(diffusionAngle);
+        controls[index + 32] = std::cos(diffusionAngle);
+        controls[index + 64] = std::sin(guidanceAngle);
+        controls[index + 96] = std::cos(guidanceAngle);
     }
+    // This seed selects our reproducible noise sequence, not an original retake.
     GaussianNoise noise(noiseSeed);
     for (std::size_t frame = 0; frame < context.frames; ++frame)
     {
@@ -262,7 +270,7 @@ juce::Result AcousticModel::sampleLatent(const DnniTensor& context, const DnniTe
         std::copy(controls.begin(), controls.end(), destination + 256);
         for (std::size_t channel = 0; channel < 4; ++channel)
         {
-            destination[static_cast<std::ptrdiff_t>(384 + channel)] = noise.next();
+            destination[static_cast<std::ptrdiff_t>(384 + channel)] = noise.next() * sourceTemperature;
         }
     }
     DnniTensor hidden;

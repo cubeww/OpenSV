@@ -33,7 +33,7 @@ struct AcousticFeatureConfig
 class AcousticFeatures
 {
 public:
-    // Loads the supported _ftmfv3 configuration, independent of the reader's lifetime.
+    // Loads the supported _ftmfv2/v3 configuration, independent of the reader's lifetime.
     [[nodiscard]] juce::Result load(const DnniReader& reader, std::size_t nodeIndex);
     [[nodiscard]] const AcousticFeatureConfig& getConfig() const noexcept;
     [[nodiscard]] const std::vector<PhoneSet>& getPhoneSets() const noexcept;

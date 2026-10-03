@@ -277,7 +277,9 @@ juce::Result VocoderResidual::load(const DnniReader& reader, std::size_t vocoder
         return juce::Result::fail("Vocoder residual: vocoder root has an unexpected child count.");
     }
     const auto configuration = reader.getPayload(children.front());
-    if (nodes[children.front()].type != "_vocfv1" || configuration.size() != 48)
+    const auto& configurationType = nodes[children.front()].type;
+    const bool featureVersion2 = configurationType == "_vocfv2";
+    if ((configurationType != "_vocfv1" && !featureVersion2) || configuration.size() != (featureVersion2 ? 52 : 48))
     {
         return juce::Result::fail("Vocoder residual: missing vocoder feature configuration.");
     }

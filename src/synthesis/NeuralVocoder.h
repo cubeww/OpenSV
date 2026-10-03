@@ -62,6 +62,7 @@ private:
     std::size_t hopSamples = 0;
     float excitationGain = 0.0f;
     float modulationBias = 0.0f;
+    bool forceVoicedFeatures = false;
     bool loaded = false;
 };
 } // namespace sv::synthesis

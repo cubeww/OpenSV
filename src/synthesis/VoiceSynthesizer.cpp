@@ -47,19 +47,19 @@ juce::Result readFrameInterval(const DnniReader& reader, float& frameIntervalSec
     const auto& nodes = reader.getNodes();
     for (std::size_t index = 0; index < nodes.size(); ++index)
     {
-        if (nodes[index].type != "_ftmfv3")
+        if (nodes[index].type != "_ftmfv2" && nodes[index].type != "_ftmfv3")
         {
             continue;
         }
         if (featureNode.has_value())
         {
-            return juce::Result::fail("Voice synthesizer: acoustic model contains multiple _ftmfv3 feature configurations");
+            return juce::Result::fail("Voice synthesizer: acoustic model contains multiple feature configurations");
         }
         featureNode = index;
     }
     if (!featureNode.has_value())
     {
-        return juce::Result::fail("Voice synthesizer: acoustic model has no supported _ftmfv3 feature configuration");
+        return juce::Result::fail("Voice synthesizer: acoustic model has no supported _ftmfv2/v3 feature configuration");
     }
     AcousticFeatures features;
     if (const auto result = features.load(reader, *featureNode); result.failed())

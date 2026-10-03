@@ -54,7 +54,7 @@ std::size_t PitchContext::State::getBytes() const noexcept
     return projection.getBytes() + feedForward.getBytes() + residual.getBytes();
 }
 
-juce::Result PitchContext::load(const DnniReader& reader, std::size_t nodeIndex)
+juce::Result PitchContext::load(const DnniReader& reader, std::size_t nodeIndex, std::size_t phonemeCategoryCount, std::size_t languageCount)
 try
 {
     const auto& nodes = reader.getNodes();
@@ -79,9 +79,9 @@ try
     {
         return result;
     }
-    if (candidate.phonemeEmbedding.rows != 32 || candidate.phonemeEmbedding.columns != 13 || candidate.languageEmbedding.rows != 32 || candidate.languageEmbedding.columns == 0)
+    if (phonemeCategoryCount == 0 || languageCount == 0 || candidate.phonemeEmbedding.rows != 32 || candidate.phonemeEmbedding.columns != phonemeCategoryCount || candidate.languageEmbedding.rows != 32 || candidate.languageEmbedding.columns != languageCount)
     {
-        return fail("unsupported categorical embedding dimensions");
+        return fail("32-channel categorical embeddings must match the frontend's category and language tables");
     }
     if (auto result = candidate.noteEncoder.load(reader, children[2]); result.failed())
     {

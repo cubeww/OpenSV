@@ -77,9 +77,10 @@ juce::Result NeuralVocoder::load(const DnniReader& reader, std::size_t rootNode)
     const auto configurationNode = node.children[0];
     const auto& configuration = nodes[configurationNode];
     const auto configurationBytes = reader.getPayload(configurationNode);
-    if (configuration.type != "_vocfv1" || configurationBytes.size() != 48 || configuration.children.size() < 4)
+    const bool featureVersion2 = configuration.type == "_vocfv2";
+    if ((configuration.type != "_vocfv1" && !featureVersion2) || configurationBytes.size() != (featureVersion2 ? 52 : 48) || configuration.children.size() < 4)
     {
-        return failure("invalid _vocfv1 feature configuration");
+        return failure("invalid _vocfv1/v2 feature configuration");
     }
     if (readWord(configurationBytes, 0) != 72 || readWord(configurationBytes, 16) != 72 || readWord(configurationBytes, 32) != 1)
     {
@@ -87,6 +88,9 @@ juce::Result NeuralVocoder::load(const DnniReader& reader, std::size_t rootNode)
     }
 
     NeuralVocoder candidate;
+    // _vocfv2 adds the input voicing override used by 0x1002127e0 before
+    // normalization; the first twelve fields retain the _vocfv1 layout.
+    candidate.forceVoicedFeatures = featureVersion2 && readWord(configurationBytes, 48) != 0;
     candidate.sampleRate = static_cast<double>(readWord(configurationBytes, 8));
     candidate.framePeriodSeconds = static_cast<double>(readFloat(configurationBytes, 12));
     const double hop = std::round(candidate.sampleRate * candidate.framePeriodSeconds);
@@ -197,6 +201,10 @@ juce::Result NeuralVocoder::run(const DnniTensor& input, NeuralVocoderOutput& ou
         {
             return failure("F0 must be positive even for unvoiced frames");
         }
+        if (forceVoicedFeatures)
+        {
+            logarithmic.values[frame * 72] = 1.0f;
+        }
         logarithmic.values[frame * 72 + 1] = std::log(frequency);
     }
 
@@ -219,13 +227,14 @@ juce::Result NeuralVocoder::run(const DnniTensor& input, NeuralVocoderOutput& ou
     std::vector<PeriodicExcitationFrame> sourceFrames(input.frames);
     for (std::size_t frame = 0; frame < input.frames; ++frame)
     {
-        float sourceShape = 2.9f / (std::exp(shape.values[frame]) + 1.0f) + 0.1f;
+        // The shape head emits a logit; a larger value must increase Rd.
+        float sourceShape = 2.9f / (std::exp(-shape.values[frame]) + 1.0f) + 0.1f;
         if (!shapeControl.empty())
         {
             const float control = shapeControl[frame];
             sourceShape += control * (control <= 0.0f ? sourceShape - 0.1f : 3.0f - sourceShape);
         }
-        sourceFrames[frame] = {input.values[frame * 72 + 1], sourceShape, input.values[frame * 72] >= 0.5f};
+        sourceFrames[frame] = {input.values[frame * 72 + 1], sourceShape, forceVoicedFeatures || input.values[frame * 72] >= 0.5f};
     }
 
     DnniTensor condition;

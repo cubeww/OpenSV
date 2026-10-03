@@ -24,9 +24,11 @@ std::uint32_t readUint32(std::span<const std::uint8_t> bytes, std::size_t offset
 juce::Result AcousticFeatures::load(const DnniReader& reader, std::size_t nodeIndex)
 {
     const auto& nodes = reader.getNodes();
-    if (nodeIndex >= nodes.size() || nodes[nodeIndex].type != "_ftmfv3" || nodes[nodeIndex].payloadSize != 32 || nodes[nodeIndex].children.size() != 6)
+    // The v2/v3 factories at 0x1000e0bb0/0x1000e0e20 use the same payload,
+    // runtime vtable and phoneme-mapping mode.
+    if (nodeIndex >= nodes.size() || (nodes[nodeIndex].type != "_ftmfv2" && nodes[nodeIndex].type != "_ftmfv3") || nodes[nodeIndex].payloadSize != 32 || nodes[nodeIndex].children.size() != 6)
     {
-        return juce::Result::fail("Acoustic features require a 32-byte _ftmfv3 with six children.");
+        return juce::Result::fail("Acoustic features require a 32-byte _ftmfv2 or _ftmfv3 with six children.");
     }
     const auto payload = reader.getPayload(nodeIndex);
     AcousticFeatures candidate;
@@ -34,9 +36,9 @@ juce::Result AcousticFeatures::load(const DnniReader& reader, std::size_t nodeIn
     candidate.config.pitchChannels = readUint32(payload, 4);
     candidate.config.acousticChannels = readUint32(payload, 8);
     candidate.config.frameIntervalSeconds = std::bit_cast<float>(readUint32(payload, 24));
-    if (candidate.config.phonemeChannels != 108 || candidate.config.pitchChannels != 1 || candidate.config.acousticChannels != 71 || readUint32(payload, 12) != 2 || readUint32(payload, 16) != 66 || readUint32(payload, 20) != 0 || readUint32(payload, 28) != 0 || !std::isfinite(candidate.config.frameIntervalSeconds) || candidate.config.frameIntervalSeconds <= 0.0f)
+    if (candidate.config.phonemeChannels < 2 || candidate.config.pitchChannels != 1 || candidate.config.acousticChannels != 71 || readUint32(payload, 12) != 2 || readUint32(payload, 16) != 66 || readUint32(payload, 20) != 0 || readUint32(payload, 28) != 0 || !std::isfinite(candidate.config.frameIntervalSeconds) || candidate.config.frameIntervalSeconds <= 0.0f)
     {
-        return juce::Result::fail("Unsupported acoustic _ftmfv3 configuration; only the verified 108/1/71 layout without DCT postprocessing is implemented.");
+        return juce::Result::fail("Unsupported acoustic feature configuration; expected phoneme/duration features, one F0 channel and 71 output channels without DCT postprocessing.");
     }
 
     const auto& children = nodes[nodeIndex].children;
@@ -103,7 +105,7 @@ juce::Result AcousticFeatures::load(const DnniReader& reader, std::size_t nodeIn
     }
     if (candidate.phonemeNormalization.getChannelCount() != candidate.config.phonemeChannels || candidate.pitchNormalization.getChannelCount() != candidate.config.pitchChannels || candidate.acousticNormalization.getChannelCount() != candidate.config.acousticChannels)
     {
-        return juce::Result::fail("Acoustic normalization dimensions do not match _ftmfv3.");
+        return juce::Result::fail("Acoustic normalization dimensions do not match the feature configuration.");
     }
     *this = std::move(candidate);
     return juce::Result::ok();

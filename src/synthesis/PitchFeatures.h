@@ -42,6 +42,8 @@ class PitchFeatures
 public:
     [[nodiscard]] juce::Result load(const DnniReader& reader, std::size_t nodeIndex);
     [[nodiscard]] float getFrameIntervalSeconds() const noexcept;
+    [[nodiscard]] std::size_t getPhonemeCategoryCount() const noexcept;
+    [[nodiscard]] std::size_t getLanguageCount() const noexcept;
     [[nodiscard]] juce::Result encode(std::span<const PitchNote> notes, std::span<const PhonemeDuration> phonemes, PitchFeatureOutput& output) const;
     [[nodiscard]] juce::Result denormalizePitch(std::span<const float> normalizedPitch, std::vector<float>& midiPitch) const;
 

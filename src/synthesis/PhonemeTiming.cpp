@@ -97,7 +97,7 @@ std::uint32_t readWord(std::span<const std::uint8_t> bytes, std::size_t offset)
     return static_cast<std::uint32_t>(bytes[offset]) | (static_cast<std::uint32_t>(bytes[offset + 1]) << 8) | (static_cast<std::uint32_t>(bytes[offset + 2]) << 16) | (static_cast<std::uint32_t>(bytes[offset + 3]) << 24);
 }
 
-juce::Result readEmbedding(const DnniReader& reader, std::size_t nodeIndex, std::uint32_t rows, std::uint32_t columns, DnniMatrix& matrix)
+juce::Result readEmbedding(const DnniReader& reader, std::size_t nodeIndex, std::size_t rows, std::size_t columns, DnniMatrix& matrix)
 {
     const auto& node = reader.getNodes()[nodeIndex];
     if (node.type != "modl4" || node.payloadSize != 0 || node.children.size() != 1)
@@ -195,9 +195,9 @@ juce::Result PhonemeTiming::load(const DnniReader& reader, std::size_t rootNode)
     }
 
     const auto& languageGroup = nodes[frontend.children[0]];
-    if (languageGroup.type != "cmpg1" || languageGroup.payloadSize != 0 || languageGroup.children.size() != 5)
+    if (languageGroup.type != "cmpg1" || languageGroup.payloadSize != 0 || languageGroup.children.empty())
     {
-        return failure("the duration frontend requires five language phone sets.");
+        return failure("the duration frontend requires a nonempty language phone-set group.");
     }
     candidate.phoneSets.resize(languageGroup.children.size());
     for (std::size_t index = 0; index < languageGroup.children.size(); ++index)
@@ -210,10 +210,6 @@ juce::Result PhonemeTiming::load(const DnniReader& reader, std::size_t rootNode)
     if (const auto result = readPhoneSet(reader, frontend.children[1], candidate.unifiedPhoneSet); result.failed())
     {
         return result;
-    }
-    if (candidate.unifiedPhoneSet.symbols.size() != 107)
-    {
-        return failure("the duration frontend requires 107 unified phonemes.");
     }
     const std::set<std::string> unifiedSymbols(candidate.unifiedPhoneSet.symbols.begin(), candidate.unifiedPhoneSet.symbols.end());
     for (const auto& phoneSet : candidate.phoneSets)
@@ -238,11 +234,11 @@ juce::Result PhonemeTiming::load(const DnniReader& reader, std::size_t rootNode)
     {
         return failure("duration normalizers must each contain one channel.");
     }
-    if (const auto result = readEmbedding(reader, children[2], 32, 5, candidate.languageEmbedding); result.failed())
+    if (const auto result = readEmbedding(reader, children[2], 32, candidate.phoneSets.size(), candidate.languageEmbedding); result.failed())
     {
         return result;
     }
-    if (const auto result = readEmbedding(reader, children[3], 32, 107, candidate.phonemeEmbedding); result.failed())
+    if (const auto result = readEmbedding(reader, children[3], 32, candidate.unifiedPhoneSet.symbols.size(), candidate.phonemeEmbedding); result.failed())
     {
         return result;
     }

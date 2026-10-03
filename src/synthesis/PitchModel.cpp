@@ -198,7 +198,7 @@ try
     {
         return result;
     }
-    if (auto result = candidate.context.load(reader, model.children[3]); result.failed())
+    if (auto result = candidate.context.load(reader, model.children[3], candidate.features.getPhonemeCategoryCount(), candidate.features.getLanguageCount()); result.failed())
     {
         return result;
     }

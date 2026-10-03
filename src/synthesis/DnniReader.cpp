@@ -18,7 +18,7 @@ constexpr std::size_t nodeHeaderBytes = 20;
 std::string resolveType(std::uint64_t typeId)
 {
     constexpr std::array<std::uint64_t, 12> seeds{0x0dcd59189d5a0f24, 0x59346d79970ca21e, 0xcf3519b773b767bf, 0x562c8e41fb7fbee2, 0xbd6d25457e1ed24e, 0x0123456789abcdef, 0x76543210fedcba98, 0x02468aceeca86420, 0xeca864202468acee, 0x70556f5965766947, 0x5a4d5a4d5a4d5a4d, 0x000000626d6f6379};
-    for (const auto* name : {"prim0", "prim1", "prim2", "prim3", "prim4", "prim5", "modm0", "modl0", "modl1", "modl3", "modl4", "modl6", "moda0", "moda1", "moda2", "moda3", "moda4", "moda5", "moda7", "_gnc1v0", "_ncwnv0", "cmpg1", "cmpu0", "cmpu1", "_vocfv1", "_ppusv0", "_ppdsv0", "_psv2"})
+    for (const auto* name : {"prim0", "prim1", "prim2", "prim3", "prim4", "prim5", "modm0", "modl0", "modl1", "modl3", "modl4", "modl6", "moda0", "moda1", "moda2", "moda3", "moda4", "moda5", "moda7", "_gnc1v0", "_ncwnv0", "cmpg1", "cmpu0", "cmpu1", "_vocfv1", "_vocfv2", "_ppusv0", "_ppdsv0", "_psv2", "_rldtg0", "_rldms0", "_stbkv1", "_vqctx1", "_didsv0", "_ftmfv2", "_ftmfv3", "_dctov0"})
     {
         for (auto hash : seeds)
         {
